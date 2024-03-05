@@ -2,62 +2,57 @@ import * as contactsService from "../services/contactsServices.js";
 
 import HttpError from "../helpers/HttpError.js";
 
-import { createContactSchema, updateContactSchema } from "../schemas/contactsSchemas.js";
+import ctrlWrapper from "../decorators/ctrlWrapper.js";
 
-export const getAllContacts = async (req, res, next) => {
-  try {
-    const result = await contactsService.listContacts();
+const getAllContacts = async (req, res) => {
+  const result = await contactsService.listContacts();
 
-    res.json(result);
-  } catch (error) {
-      next(error);
+  res.json(result);
+};
+
+const getOneContact = async (req, res) => {
+  const { id } = req.params;
+  const result = await contactsService.getContactById(id);
+  if (!result) {
+    throw HttpError(404);
   }
+
+  res.json(result);
 };
 
-export const getOneContact = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const result = await contactsService.getContactById(id);
-        if (!result) {
-            throw HttpError(404);
-        }
+const deleteContact = async (req, res) => {
+  const { id } = req.params;
+  const result = await contactsService.removeContact(id);
+  if (!result) {
+    throw HttpError(404);
+  }
 
-        res.json(result);
-    } catch (error) {
-        next(error);
-    }
+  res.status(200).json(result);
 };
 
-export const deleteContact = (req, res) => {};
+const createContact = async (req, res) => {
+  const result = await contactsService.addContact(req.body);
 
-export const createContact = async (req, res, next) => {
-    try {
-        const {error} = createContactSchema.validate(req.body);
-        if (error) {
-            throw HttpError(400, message = error.message)
-        }
-        const result = await contactsService.addContact(req.body);
-
-        res.status(201).json(result);
-    } catch (error) {
-        next(error);
-    }
+  res.status(201).json(result);
 };
 
-export const updateContact = async (req, res, next) => {
-    try {
-        const {error} = updateContactSchema.validate(req.body);
-        if (error) {
-            throw HttpError(400, message = error.message)
-        }
-        const { id } = req.params;
-        const result = await contactsService.updateContact(id, req.body);
+const updateContact = async (req, res) => {
+  const { id } = req.params;
+  const result = await contactsService.updateContact(id, req.body);
+  if (!req.body || Object.keys(req.body).length === 0) {
+    throw HttpError(400, "Body must have at least one field");
+  }
+  if (!result) {
+    throw HttpError(404);
+  }
 
-        if (!result) {
-            throw HttpError(404);
-        }
+  res.json(result);
+};
 
-        res.json(result);
-    } catch (error) {
-        next(error);
-    }};
+export default {
+  getAllContacts: ctrlWrapper(getAllContacts),
+  getOneContact: ctrlWrapper(getOneContact),
+  deleteContact: ctrlWrapper(deleteContact),
+  createContact: ctrlWrapper(createContact),
+  updateContact: ctrlWrapper(updateContact),
+};
